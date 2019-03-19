@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import sys
 import os
 from nltk.tokenize import word_tokenize
@@ -106,3 +107,7 @@ if __name__ == '__main__':
             sys.exit(0)
         except SystemExit:
             os._exit(0)
+=======
+import nltk
+
+>>>>>>> 11a2bb86b5a959b5e761bf05cac365c7c7c3849b
