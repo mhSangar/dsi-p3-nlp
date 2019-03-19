@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import sys
 import os
 from nltk.tokenize import word_tokenize
@@ -8,6 +7,8 @@ from nltk.probability import FreqDist
 import logging
 import coloredlogs
 # import re
+
+# Press F to pay respects
 
 
 logger = logging.getLogger(__name__)
@@ -53,13 +54,13 @@ def createNGrama(tokens, nbrOfNGrams=6):
 
     return Ngrams
 
-def probabilityPerWord(tokens):
-    fdist = FreqDist(tokens)
+def probabilityPerGram(ngram):
+    fdist = FreqDist(ngram)
 
     # list with the results of the frequency
     list = []
     for k,v in fdist.items():
-        list.append({'word': k, 'value': v})
+        list.append({'gram': k, 'value': v})
 
     #  we order the frequencies by value DESC
     list = sorted(list, key=lambda k: k['value'], reverse=True)
@@ -86,14 +87,17 @@ def main():
 
         Ngrams = createNGrama(tokens, 2)
 
-        list = probabilityPerWord(tokens)
+        # TODO: Meter Ngrams directamente
+        list = probabilityPerGram(Ngrams)
 
-        i = 10
-        for item in Ngrams:
-            logger.info( item )
-            i -= 1
-            if i < 0:
-                break
+        logger.info(list[:100])
+
+        # i = 10
+        # for item in Ngrams:
+        #     logger.info( item )
+        #     i -= 1
+        #     if i < 0:
+        #         break
 
         sentence = "he is the one"
 
@@ -107,7 +111,3 @@ if __name__ == '__main__':
             sys.exit(0)
         except SystemExit:
             os._exit(0)
-=======
-import nltk
-
->>>>>>> 11a2bb86b5a959b5e761bf05cac365c7c7c3849b
