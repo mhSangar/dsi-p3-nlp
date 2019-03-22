@@ -1,12 +1,13 @@
 import sys
 import os
-from nltk.tokenize import word_tokenize
-from nltk import ngrams
-from nltk.tokenize import RegexpTokenizer
-from nltk.probability import FreqDist
 import logging
 import coloredlogs
+from nltk import ngrams, download
+from nltk.tokenize import word_tokenize, RegexpTokenizer
+from nltk.corpus import stopwords
+from nltk.probability import FreqDist
 # import re
+
 
 # Press F to pay respects
 
@@ -25,84 +26,115 @@ def downloadNltkDependencies():
         word_tokenize('foo bar')
     except LookupError:
         logger.warning(
-            'Need to download first a NLTK package: tokenize, punkt')
-        nltk.download('punkt')
+            'Need to download first a NLTK package: punkt')
+        download('punkt')
 
-    # try:
-    #     stopwords.words('english')
-    # except LookupError:
-    #     logger.warning('Need to download first a NLTK package: stopwords')
-    #     nltk.download('stopwords')
-    #
-    # try:
-    #     WordNetLemmatizer().lemmatize('foo')
-    # except LookupError:
-    #     logger.warning('Need to download first a NLTK package: wordnet')
-    #     nltk.download('wordnet')
+    try:
+        stopwords.words('english')
+    except LookupError:
+        logger.warning('Need to download first a NLTK package: stopwords')
+        download('stopwords')
 
 
 def openCorpus(filename):
-
     with open(filename, 'r') as f:
         str = f.read()
         return str
 
 
-def createNGrama(tokens, nbrOfNGrams=6):
-
+def createNGrams(tokens, nbrOfNGrams):
     Ngrams = ngrams(tokens, nbrOfNGrams)
 
     return Ngrams
 
-def probabilityPerGram(ngram):
-    fdist = FreqDist(ngram)
+
+def probabilityPerGram(tokens, n, order=False):
+    if n == 1:
+        ngrams = createNGrams(tokens, n)
+        fdist = FreqDist(ngrams)
+
+        return fdist
+    
+    fdist = None
+    fdistMinus1 = None
+
+    ngrams = createNGrams(tokens, n)
+    ngramsMinus1 = createNGrams(tokens, n-1)
+
+    fdist = FreqDist(ngrams)
+    fdistMinus1 = FreqDist(ngramsMinus1)
+
+    for gram, value in fdist.items():
+        # print(gram)
+        # print(value)
+        # print(fdistMinus1[gram[:-1]])
+        fdist[gram] = (value / fdistMinus1[gram[:-1]]) * 100
 
     # list with the results of the frequency
-    list = []
-    for k,v in fdist.items():
-        list.append({'gram': k, 'value': v})
+    gramList = []
+    for k, v in fdist.items():
+        gramList.append({'gram': k, 'value': v})
 
     #  we order the frequencies by value DESC
-    list = sorted(list, key=lambda k: k['value'], reverse=True)
+    if order:
+        gramList = sorted(gramList, key=lambda k: k['value'], reverse=True)
 
-    return list
+    return gramList
+
+
+def removeStopWords(wordList, language='english'):
+    stopWords = set(stopwords.words(language))
+
+    filteredWordList = []
+
+    for item in wordList:
+        if item.lower() not in stopWords:
+            filteredWordList.append(item)
+
+    return filteredWordList
+
+
+def probabilityOfSentence(sentence, corpusPath, cleanStopWords=False):
+    corpus = openCorpus(corpusPath)
+
+    tokenizer = RegexpTokenizer(r'\w+')
+    
+    sentenceTokens = tokenizer.tokenize(sentence)
+    # length of sentence
+    n = len(sentenceTokens)
+
+    corpusTokens = tokenizer.tokenize(corpus)
+
+    # clean stop words
+    if cleanStopWords:
+        corpusTokens = removeStopWords(corpusTokens)
+
+    # we pass the words to lowercase to avoid double entries
+    for i in range(0, len(corpusTokens)):
+        corpusTokens[i] = corpusTokens[i].lower()
+
+    gramList = probabilityPerGram(corpusTokens, n)
+    
+    for item in gramList:
+        if item['gram'] == tuple(sentenceTokens):
+            return item['value']
+    
+    return 0
 
 
 def main():
+    sentence = sys.argv[1]
+    
+    p = probabilityOfSentence(sentence, 'corpus/dracula.txt')
 
-        downloadNltkDependencies()
-        initLogger()
-
-        book = openCorpus("corpus/dracula.txt")
-
-        # with punctuaction marks
-        # tokens = word_tokenize(book)
-
-        tokenizer = RegexpTokenizer(r'\w+')
-        tokens = tokenizer.tokenize(book)
-
-        # we pass the words to lowercase to avoid double entries
-        for i in range(0, len(tokens)):
-            tokens[i] = tokens[i].lower()
-
-        Ngrams = createNGrama(tokens, 2)
-
-        # TODO: Meter Ngrams directamente
-        list = probabilityPerGram(Ngrams)
-
-        logger.info(list[:100])
-
-        # i = 10
-        # for item in Ngrams:
-        #     logger.info( item )
-        #     i -= 1
-        #     if i < 0:
-        #         break
-
-        sentence = "he is the one"
+    logger.info('sentence: "{}"'.format(sentence))
+    logger.info('prob: {:.2f}%'.format(p))
 
 
 if __name__ == '__main__':
+    initLogger()
+    downloadNltkDependencies()
+
     try:
         main()
     except KeyboardInterrupt:
