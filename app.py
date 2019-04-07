@@ -36,7 +36,7 @@ def downloadNltkDependencies():
         download('stopwords')
 
 
-def openCorpus(filename, test=False):
+def openCorpus(filename, test=True):
     if not test:
         with open(filename, 'r') as f:
                 str = f.read()
@@ -69,7 +69,6 @@ def probabilityPerGram(tokens, n, order=False):
     fdist = None
     fdistMinus1 = None
 
-    unigram = createNGrams(tokens, 1)
     ngrams = createNGrams(tokens, n)
     ngramsMinus1 = createNGrams(tokens, n-1)
 
@@ -106,7 +105,37 @@ def removeStopWords(wordList, language='english'):
     return filteredWordList
 
 
-def probabilityOfSentence(sentence, nbrOfNGrams, corpusPath, toLowerCase=True, cleanStopWords=False):
+def firstWordProb(firstWord, tokens):
+    prob = 0
+    unigram = createNGrams(tokens, 1)
+
+    fdist = FreqDist(unigram)
+
+    freqWLow = 0
+    freqWCap = 0
+    freqW = 0
+
+    for gram, value in fdist.items():
+        if gram[0] == firstWord.lower():
+            freqWLow = value
+        if gram[0] == firstWord.capitalize():
+            freqWCap = value
+        if gram[0] == firstWord:
+            freqW = value
+
+    # logger.debug(freqW)
+    # logger.debug(freqWLow)
+    # logger.debug(freqWCap)
+
+    try:
+        prob = freqW / (freqWLow + freqWCap)
+    except ZeroDivisionError:
+        prob = 0
+
+    return prob
+
+
+def probabilityOfSentence(sentence, nbrOfNGrams, corpusPath, toLowerCase=False, cleanStopWords=False):
     corpus = openCorpus(corpusPath)
 
     tokenizer = RegexpTokenizer(r'\w+')
@@ -133,20 +162,22 @@ def probabilityOfSentence(sentence, nbrOfNGrams, corpusPath, toLowerCase=True, c
         if len(tup) == nbrOfNGrams:
             sentenceTuples.append(tup)
 
-    prob = -1
+    firstWord = sentenceTokens[0]
+    prob = firstWordProb(firstWord, corpusTokens)
+    logger.debug('P{word}: {prob:.5f} %'.format(word=[firstWord], prob=prob))
     for tup in sentenceTuples:
         found = False
         for item in gramList:
             if item['gram'] == tuple(tup):
-                logger.debug('{ngram}: {prob:.5f} %'.format(ngram=tup, prob=item['value'] * 100))
+                logger.debug('P{ngram}: {prob:.5f} %'.format(ngram=tup, prob=item['value'] * 100))
                 prob *= item['value']
                 found = True
         
         if not found:
-            logger.debug('{ngram}: {prob:.5f} %'.format(ngram=tup, prob=0 * 100))
+            logger.debug('P{ngram}: {prob:.5f} %'.format(ngram=tup, prob=0 * 100))
             prob = 0
     
-    return -prob
+    return prob
 
 
 def main():
@@ -155,7 +186,7 @@ def main():
     sentence = sys.argv[2]
     logger.info('Sentence:    "{s}"'.format(s=sentence))
 
-    p = abs(probabilityOfSentence(sentence, nbrOfNGrams, 'corpus/saint-exupery-little-prince.txt'))
+    p = probabilityOfSentence(sentence, nbrOfNGrams, 'corpus/saint-exupery-little-prince.txt')
 
     logger.info('prob: {:.2f}%'.format(p*100))
 
