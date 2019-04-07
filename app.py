@@ -139,8 +139,17 @@ def probabilityOfSentence(sentence, nbrOfNGrams, corpusPath, toLowerCase=False, 
     corpus = openCorpus(corpusPath)
 
     tokenizer = RegexpTokenizer(r'\w+')
-    sentenceTokens = tokenizer.tokenize(sentence)
     corpusTokens = tokenizer.tokenize(corpus)
+    sentenceTokens = tokenizer.tokenize(sentence)
+
+    if len(sentenceTokens) < nbrOfNGrams:
+        logger.warning(
+            'Sentence is too short ({nbrTokens} tokens) for the indicated number of ngrams ({nbrOfNGrams}), exiting...'.format(
+                nbrTokens=len(sentenceTokens),
+                nbrOfNGrams=nbrOfNGrams
+        ))
+        sys.exit(1)
+
 
     # clean stop words
     if cleanStopWords:
@@ -182,9 +191,9 @@ def probabilityOfSentence(sentence, nbrOfNGrams, corpusPath, toLowerCase=False, 
 
 def main():
     nbrOfNGrams = int(sys.argv[1])
-    logger.info('NbrOfNGrams: {n}'.format(n=nbrOfNGrams))
+    logger.info('NGrams:   {n}'.format(n=nbrOfNGrams))
     sentence = sys.argv[2]
-    logger.info('Sentence:    "{s}"'.format(s=sentence))
+    logger.info('Sentence: "{s}"'.format(s=sentence))
 
     p = probabilityOfSentence(sentence, nbrOfNGrams, 'corpus/saint-exupery-little-prince.txt')
 
