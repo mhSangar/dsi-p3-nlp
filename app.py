@@ -49,17 +49,11 @@ def openCorpus(filename, test=False):
             heart that one can see rightly; what is essential is invisible to the eye."
 
             "What is essential is invisible to the eye," the little prince repeated, so that he would be sure to
-            remember. 
+            remember.
         '''
 
 
 def probabilityPerGram(tokens, n, order=False):
-    if n == 1:
-        nGrams = ngrams(tokens, n)
-        fdist = FreqDist(nGrams)
-
-        return fdist
-    
     fdist = None
     fdistMinus1 = None
 
@@ -69,6 +63,7 @@ def probabilityPerGram(tokens, n, order=False):
     fdist = FreqDist(nGrams)
     fdistMinus1 = FreqDist(ngramsMinus1)
 
+    # apply the conditional probability formula
     for gram, value in fdist.items():
         # print(gram)
         # print(value)
@@ -80,7 +75,7 @@ def probabilityPerGram(tokens, n, order=False):
     for k, v in fdist.items():
         gramList.append({'gram': k, 'value': v})
 
-    #  we order the frequencies by value DESC
+    #  order the frequencies by value DESC
     if order:
         gramList = sorted(gramList, key=lambda k: k['value'], reverse=True)
 
@@ -144,6 +139,12 @@ def probabilityOfSentence(sentence, nbrOfNGrams, corpusPath, toLowerCase=False, 
         ))
         sys.exit(1)
 
+    if nbrOfNGrams < 2:
+        logger.warning(
+            'The minimum number of n-grams is 2 ({nbrOfNGrams} was introduced), exiting...'.format(
+                nbrOfNGrams=nbrOfNGrams
+            ))
+        sys.exit(1)
 
     # clean stop words
     if cleanStopWords:
@@ -158,7 +159,7 @@ def probabilityOfSentence(sentence, nbrOfNGrams, corpusPath, toLowerCase=False, 
             sentenceTokens[i] = sentenceTokens[i].lower()
 
     gramList = probabilityPerGram(corpusTokens, nbrOfNGrams)
-    
+
     sentenceTuples = []
     for i in range(0, len(sentenceTokens)):
         tup = sentenceTokens[i:i+nbrOfNGrams]
@@ -175,11 +176,11 @@ def probabilityOfSentence(sentence, nbrOfNGrams, corpusPath, toLowerCase=False, 
                 logger.debug('P{ngram}: {prob:.5f} %'.format(ngram=tup, prob=item['value'] * 100))
                 prob *= item['value']
                 found = True
-        
+
         if not found:
             logger.debug('P{ngram}: {prob:.5f} %'.format(ngram=tup, prob=0 * 100))
             prob = 0
-    
+
     return prob
 
 
