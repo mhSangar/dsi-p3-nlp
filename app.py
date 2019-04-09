@@ -168,12 +168,13 @@ def probabilityOfSentence(sentence, nbrOfNGrams, corpusPath, toLowerCase=False, 
 
     firstWord = sentenceTokens[0]
     prob = firstWordProb(firstWord, corpusTokens)
-    logger.debug('P{word}: {prob:.5f} %'.format(word=[firstWord], prob=prob))
+    logger.debug('P({word}): {prob:.5f} %'.format(word=firstWord, prob=prob))
+
     for tup in sentenceTuples:
         found = False
         for item in gramList:
             if item['gram'] == tuple(tup):
-                logger.debug('P{ngram}: {prob:.5f} %'.format(ngram=tup, prob=item['value'] * 100))
+                logger.debug('P({output}): {prob:.5f} %'.format(output= tup[-1] + ' | ' + ' '.join(tup[:-1]), prob=item['value'] * 100))
                 prob *= item['value']
                 found = True
 
