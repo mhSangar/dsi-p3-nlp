@@ -36,9 +36,9 @@ def downloadNltkDependencies():
         download('stopwords')
 
 
-def openCorpus(filename, test=False):
+def openCorpus(filename, test=True):
     if not test:
-        with open(filename, 'r', encoding = 'utf-8') as f:
+        with open(filename, 'r') as f:
                 str = f.read()
                 return str
     else:
@@ -49,24 +49,30 @@ def openCorpus(filename, test=False):
             heart that one can see rightly; what is essential is invisible to the eye."
 
             "What is essential is invisible to the eye," the little prince repeated, so that he would be sure to
-            remember.
+            remember. 
         '''
+
+
+def createNGrams(tokens, nbrOfNGrams):
+    Ngrams = ngrams(tokens, nbrOfNGrams)
+
+    return Ngrams
 
 
 def probabilityPerGram(tokens, n, order=False):
     if n == 1:
-        nGrams = ngrams(tokens, n)
-        fdist = FreqDist(nGrams)
+        ngrams = createNGrams(tokens, n)
+        fdist = FreqDist(ngrams)
 
         return fdist
-
+    
     fdist = None
     fdistMinus1 = None
 
-    nGrams = ngrams(tokens, n)
-    ngramsMinus1 = ngrams(tokens, n-1)
+    ngrams = createNGrams(tokens, n)
+    ngramsMinus1 = createNGrams(tokens, n-1)
 
-    fdist = FreqDist(nGrams)
+    fdist = FreqDist(ngrams)
     fdistMinus1 = FreqDist(ngramsMinus1)
 
     for gram, value in fdist.items():
@@ -101,7 +107,7 @@ def removeStopWords(wordList, language='english'):
 
 def firstWordProb(firstWord, tokens):
     prob = 0
-    unigram = ngrams(tokens, 1)
+    unigram = createNGrams(tokens, 1)
 
     fdist = FreqDist(unigram)
 
@@ -133,8 +139,17 @@ def probabilityOfSentence(sentence, nbrOfNGrams, corpusPath, toLowerCase=False, 
     corpus = openCorpus(corpusPath)
 
     tokenizer = RegexpTokenizer(r'\w+')
-    sentenceTokens = tokenizer.tokenize(sentence)
     corpusTokens = tokenizer.tokenize(corpus)
+    sentenceTokens = tokenizer.tokenize(sentence)
+
+    if len(sentenceTokens) < nbrOfNGrams:
+        logger.warning(
+            'Sentence is too short ({nbrTokens} tokens) for the indicated number of ngrams ({nbrOfNGrams}), exiting...'.format(
+                nbrTokens=len(sentenceTokens),
+                nbrOfNGrams=nbrOfNGrams
+        ))
+        sys.exit(1)
+
 
     # clean stop words
     if cleanStopWords:
@@ -149,7 +164,7 @@ def probabilityOfSentence(sentence, nbrOfNGrams, corpusPath, toLowerCase=False, 
             sentenceTokens[i] = sentenceTokens[i].lower()
 
     gramList = probabilityPerGram(corpusTokens, nbrOfNGrams)
-
+    
     sentenceTuples = []
     for i in range(0, len(sentenceTokens)):
         tup = sentenceTokens[i:i+nbrOfNGrams]
@@ -166,19 +181,19 @@ def probabilityOfSentence(sentence, nbrOfNGrams, corpusPath, toLowerCase=False, 
                 logger.debug('P{ngram}: {prob:.5f} %'.format(ngram=tup, prob=item['value'] * 100))
                 prob *= item['value']
                 found = True
-
+        
         if not found:
             logger.debug('P{ngram}: {prob:.5f} %'.format(ngram=tup, prob=0 * 100))
             prob = 0
-
+    
     return prob
 
 
 def main():
     nbrOfNGrams = int(sys.argv[1])
-    logger.info('NbrOfNGrams: {n}'.format(n=nbrOfNGrams))
+    logger.info('NGrams:   {n}'.format(n=nbrOfNGrams))
     sentence = sys.argv[2]
-    logger.info('Sentence:    "{s}"'.format(s=sentence))
+    logger.info('Sentence: "{s}"'.format(s=sentence))
 
     p = probabilityOfSentence(sentence, nbrOfNGrams, 'corpus/saint-exupery-little-prince.txt')
 
