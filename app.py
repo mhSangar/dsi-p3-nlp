@@ -36,9 +36,9 @@ def downloadNltkDependencies():
         download('stopwords')
 
 
-def openCorpus(filename, test=True):
+def openCorpus(filename, test=False):
     if not test:
-        with open(filename, 'r') as f:
+        with open(filename, 'r', encoding='utf-8') as f:
                 str = f.read()
                 return str
     else:
@@ -53,26 +53,20 @@ def openCorpus(filename, test=True):
         '''
 
 
-def createNGrams(tokens, nbrOfNGrams):
-    Ngrams = ngrams(tokens, nbrOfNGrams)
-
-    return Ngrams
-
-
 def probabilityPerGram(tokens, n, order=False):
     if n == 1:
-        ngrams = createNGrams(tokens, n)
-        fdist = FreqDist(ngrams)
+        nGrams = ngrams(tokens, n)
+        fdist = FreqDist(nGrams)
 
         return fdist
     
     fdist = None
     fdistMinus1 = None
 
-    ngrams = createNGrams(tokens, n)
-    ngramsMinus1 = createNGrams(tokens, n-1)
+    nGrams = ngrams(tokens, n)
+    ngramsMinus1 = ngrams(tokens, n-1)
 
-    fdist = FreqDist(ngrams)
+    fdist = FreqDist(nGrams)
     fdistMinus1 = FreqDist(ngramsMinus1)
 
     for gram, value in fdist.items():
@@ -107,7 +101,7 @@ def removeStopWords(wordList, language='english'):
 
 def firstWordProb(firstWord, tokens):
     prob = 0
-    unigram = createNGrams(tokens, 1)
+    unigram = ngrams(tokens, 1)
 
     fdist = FreqDist(unigram)
 
